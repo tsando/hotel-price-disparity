@@ -53,7 +53,7 @@ def prepare_and_save_pickle(size=None, name='df.p'):
     # Rename long client and hotel cats for just numbers
     for col in ['client', 'hotel']:
         n_col = np.unique(df[col])
-        df[col].cat.rename_categories(np.arange(1, n_col.shape[0] + 1))
+        df[col] = df[col].cat.rename_categories(np.arange(1, n_col.shape[0] + 1))
 
     save_pickle(df, 'data/' + name)
 
@@ -66,4 +66,6 @@ def prepare_and_save_pickle(size=None, name='df.p'):
 #               MAIN
 ##############################################################
 
-df = prepare_and_save_pickle()
+# df = prepare_and_save_pickle()
+
+df = open_pickle('data/df.p')
