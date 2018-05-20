@@ -89,20 +89,15 @@ def map_currency(x):
 
 
 def remove_price_outliers(df, column_name):
-    # # Remove cases when prices are 0
-    # df = df[(df['ota_price'] != 0) & (df['direct_price'] != 0)]
-    #
-    # # Create currency agnostic measure of disparity (already handled cases of div by zero earlier)
-    # df['price_ratio'] = df['ota_price'] / df['direct_price']
-    #
-    # # Remove abnormally large/small ratios (assumed outliers) - this is about 1.7% of the data
-    # df = df[(df['price_ratio'] >= 0.01) & (df['price_ratio'] <= 2)]
 
+    # Using IQR * 1.5 methodology
     column = df[column_name]
     Q1 = column.quantile(0.25)
     Q3 = column.quantile(0.75)
     IQR = Q3 - Q1
-    filtered = df.query('(@Q1 - 1.5 * @IQR) <= ' + column_name + ' <= (@Q3 + 1.5 * @IQR)')
+    # Exclude cases when prices are 0
+    filtered = df.query('0 < ' + column_name + ' <= (@Q3 + 1.5 * @IQR)')
+    # filtered = filtered[filtered[column_name]>0.0]
 
     mask = df.isin(filtered)[column_name]
 
@@ -148,13 +143,17 @@ print('Before anything: ', df.shape)
 # NOTE: With more time one could try to impute these
 df = df.dropna()
 
-# # Lots of outliers in the prices on a per currency basis, so will apply a remove procedure based on IQR
-# grouped = df[['currency', 'direct_price', 'ota_price']].groupby('currency')
-# for name, group in grouped:
-#     print(name)
-#     outlier = (remove_price_outliers(group, 'direct_price')) | (remove_price_outliers(group, 'ota_price'))
-#     df.loc[group.index, 'price_outlier'] = np.where(outlier == 1, 1, 0)
-# df = df[df['price_outlier'] != 1]
+# Get all currencies to upper case so they are not duplicated as cat
+df['currency'] = df['currency'].apply(lambda x: x.upper())
+
+# Lots of outliers in the prices on a per currency basis, so will apply a remove procedure based on IQR
+grouped = df[['currency', 'direct_price', 'ota_price']].groupby('currency')
+for name, group in grouped:
+    outlier = (remove_price_outliers(group, 'direct_price')) | (remove_price_outliers(group, 'ota_price'))
+    df.loc[group.index, 'price_outlier'] = np.where(outlier == 1, 1, 0)
+    # print(name)
+
+df = df[df['price_outlier'] != 1]
 
 print('After cleaning: ', df.shape)
 
@@ -193,9 +192,6 @@ print('New class balance:', df['undercut'].value_counts())
 #       PREPROC & FEATURE ENG
 # #################################
 
-# Get all currencies to upper case so they are not duplicated as cat
-df['currency'] = df['currency'].apply(lambda x: x.upper())
-
 # Cast relevant cols as category type
 cats = ['client', 'hotel', 'currency', 'ota', 'user_country']
 for cat in cats:
@@ -211,7 +207,7 @@ for col in ['client', 'hotel']:
 min_max_scaler = preprocessing.MinMaxScaler()
 grouped = df[['currency', 'direct_price']].groupby('currency')
 for name, group in grouped:
-    print(name)
+    # print(name)
     df.loc[group.index, 'direct_price_scaled'] = min_max_scaler.fit_transform(group[['direct_price']])
 
 
@@ -277,7 +273,6 @@ df['currency_v2'] = df['currency'].apply(lambda x: map_currency(x))
 df['major_currency'] = np.where(df['currency_v2'] != 'other', 1, 0)
 
 print(df.shape)
-print_runtime(start_time)
 
 # #################################
 #       DEFINE X and y
@@ -304,7 +299,7 @@ print(X.shape)
 
 f_enc = features_dict['orig']['cat']['enc'] + features_dict['eng']['cat']['enc']
 for col in f_enc:
-    print(col)
+    # print(col)
     prefix = col[:3] if 'continent' not in col else 'cont'
     X = X.join(pd.get_dummies(df[col], prefix=prefix))
     print(X.shape)
