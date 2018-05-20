@@ -272,7 +272,6 @@ df['user_continent'] = df['user_country'].apply(lambda x: map_country(x))
 df['currency_v2'] = df['currency'].apply(lambda x: map_currency(x))
 df['major_currency'] = np.where(df['currency_v2'] != 'other', 1, 0)
 
-print(df.shape)
 
 # #################################
 #       DEFINE X and y
@@ -302,7 +301,6 @@ for col in f_enc:
     # print(col)
     prefix = col[:3] if 'continent' not in col else 'cont'
     X = X.join(pd.get_dummies(df[col], prefix=prefix))
-    print(X.shape)
 
 # Binary target
 y = df['undercut']
