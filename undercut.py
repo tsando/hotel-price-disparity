@@ -1,6 +1,7 @@
 import sys
 import pandas as pd
 import numpy as np
+np.random.seed(0)
 import pickle
 import time
 
@@ -118,8 +119,10 @@ def run_simple(X, y, model):
     # evaluate the model on the second set of data
     y_test_model = model.predict(X_test)
 
-    print_runtime(start_time)
     print(accuracy_score(y_test, y_test_model))
+    print_runtime(start_time)
+    # print('X_train={}, y_train={}'.format(np.sum(X_train.index.tolist()), np.sum(y_train)))
+    # print('y_test={}, y_test_model={}'.format(np.sum(y_test), np.sum(y_test_model)))
     pass
 
 
