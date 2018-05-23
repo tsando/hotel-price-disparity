@@ -259,7 +259,7 @@ hotels_per_client = hotels_per_client[['n_hotels']]
 df = df.join(hotels_per_client, on='client')
 df['chain'] = np.where(df['n_hotels'] > 1, 1, 0)
 
-# nunique number of adults per hotel equates to n different rooms:
+# nunique number of adults per hotel equates to number of rooms requested
 rooms_per_hotel = df[['hotel', 'adults']].groupby('hotel').nunique().sort_values('adults', ascending=False)
 rooms_per_hotel = rooms_per_hotel.rename(columns={'adults': 'n_rooms'})
 rooms_per_hotel = rooms_per_hotel[['n_rooms']]
