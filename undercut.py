@@ -1,6 +1,7 @@
 import sys
 import pandas as pd
 import numpy as np
+
 np.random.seed(0)
 import pickle
 import time
@@ -90,7 +91,6 @@ def map_currency(x):
 
 
 def remove_price_outliers(df, column_name):
-
     # Using IQR * 1.5 methodology
     column = df[column_name]
     Q1 = column.quantile(0.25)
@@ -157,6 +157,8 @@ for name, group in grouped:
     # print(name)
 
 df = df[df['price_outlier'] != 1]
+# Remove this column as we no longer need it
+df = df.drop('price_outlier', axis=1)
 
 print('After cleaning: ', df.shape)
 
@@ -165,9 +167,13 @@ print('After cleaning: ', df.shape)
 # #################################
 # This is required as we have serious class imbalance for the undercut class
 
-# Create currency agnostic measure of disparity whican can be used for binary target
-# (already handled cases of div by zero earlier?)
+# Create currency agnostic measure of disparity which can be used for binary target
+# (already handled cases of div by zero earlier)
 df['price_ratio'] = df['ota_price'] / df['direct_price']
+# Remove outliers in price_ratio
+outlier = remove_price_outliers(df, 'price_ratio')
+df = df[~outlier]
+
 # This will be the target in our classifier
 df['undercut'] = np.where(df['price_ratio'] < 1, 1, 0)
 
@@ -185,7 +191,7 @@ df_majority_downsampled = resample(df_majority,
 df = pd.concat([df_majority_downsampled, df_minority])
 
 # Reset index since we removed lots of rows
-df = df.reset_index()
+df = df.reset_index(drop=True)
 
 # Display new class counts
 print('After downsampling: ', df.shape)
@@ -205,6 +211,7 @@ for col in ['client', 'hotel']:
     n_col = np.unique(df[col])
     df[col] = df[col].cat.rename_categories(np.arange(1, n_col.shape[0] + 1))
 
+# ------- PRICE -------
 
 # Rescale the direct price (Note again we are doing this on the whole set instead of train, which is cheating)
 min_max_scaler = preprocessing.MinMaxScaler()
@@ -212,7 +219,6 @@ grouped = df[['currency', 'direct_price']].groupby('currency')
 for name, group in grouped:
     # print(name)
     df.loc[group.index, 'direct_price_scaled'] = min_max_scaler.fit_transform(group[['direct_price']])
-
 
 # ------- TIME -------
 
@@ -274,7 +280,6 @@ df['user_continent'] = df['user_country'].apply(lambda x: map_country(x))
 
 df['currency_v2'] = df['currency'].apply(lambda x: map_currency(x))
 df['major_currency'] = np.where(df['currency_v2'] != 'other', 1, 0)
-
 
 # #################################
 #       DEFINE X and y
